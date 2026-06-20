@@ -2,8 +2,6 @@
 ## Collection of software tools for data calculations
 
 ## Developed by Bert Stewart 
-## Bert.Stewart@wdc.com
-## (408)717-6585
 
 ## DeltaPy - Python version of Delta 
 This program was developed to assist in performing manual hand-offs with Brooks robots and inaligners.
