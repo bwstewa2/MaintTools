@@ -1,8 +1,6 @@
 # DeltaPy - MaintTools
-## Collection of software tools for data calculations
-
-## Developed by Bert Stewart 
-
+Collection of software tools for data calculations
+Developed by Bert Stewart 
 
 ## Leakback
 This program is used to calculate the rate of rise and other related information associated with vacuum chamber leakback test.
