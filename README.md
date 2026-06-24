@@ -27,7 +27,6 @@ This program is used to calculate the rate of rise and other related information
 - Blue line: Approximated pressure values during test.
 - Red line: Failure line. If blue line intersects this line the test has failed. 
 
-
 ## Parameter Check:
 This program calculates the percent error between power supplly's programmable, powersupply reading and system readbacks. 
 This software is tailored to the parameter check proceedures of Veeco Ionmill and DLC systems. However, can be used for any percent error calculation by providing at least two values per row.
@@ -42,7 +41,6 @@ This software is tailored to the parameter check proceedures of Veeco Ionmill an
 
 ### results: 
 - Max Error: the value of error between the values. 
-
 
 ## Target Wear
 TODO
