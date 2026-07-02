@@ -9,6 +9,8 @@ class AnalogCalibration_Panel:
     def __init__(self):
         self.factor = ttk.StringVar(value=1.0)
         self.offset = ttk.StringVar(value=0.0)
+        self.factor_entry = ttk.StringVar(value=1.0)
+        self.offset_entry = ttk.StringVar(value=0.0)
         self.percent = ttk.DoubleVar(value=0.0)
         self.base_points = (200, 1200)
         self.max_x = 1500
@@ -28,7 +30,7 @@ class AnalogCalibration_Panel:
         y, _ = self.lin_func()
         self.fig, self.ax = plt.subplots(figsize=(8, 3))
         self.ax.set_xlim(float(self.setpoint_low.get()) - 100, float(self.setpoint_high.get()) + 100)
-        self.ax.set_ylim([min(float(self.setpoint_low.get()), float(self.adj_low.get())) - 200, max(float(self.setpoint_high.get()), float(self.adj_high.get())) + 500])
+        self.ax.set_ylim([min(float(self.setpoint_low.get()), float(self.adj_low.get())) - 100, max(float(self.setpoint_high.get()), float(self.adj_high.get())) + 200])
         self.base_line, = self.ax.plot(self.x, y, label=f'Base', color=c.COLORS["warning"])
         self.adj_line, = self.ax.plot(self.x, y, label=f'Adjusted', color=c.COLORS["primary"])
         self.ax.set_title("Analog Calibration", color=c.COLORS["inputfg"])
@@ -50,7 +52,6 @@ class AnalogCalibration_Panel:
         self.annot_high = self.ax.annotate("", xy=(0,0), xytext=(0,15), textcoords="offset points", color=c.COLORS["inputfg"],
                     bbox=dict(boxstyle="round", facecolor=c.COLORS["info"], edgecolor=c.COLORS["border"], linewidth=2),
                     arrowprops=dict(arrowstyle="-|>", color=c.COLORS["inputfg"]))
-        
         self.calc_deltas()
         self.update_setpoint_annot()
 
@@ -65,12 +66,15 @@ class AnalogCalibration_Panel:
         factor_label.grid(row=2, column=1, padx=5, pady=(10,0), sticky='nse')
         factor_slider = ttk.Scale(tab, variable=self.factor, from_=1.1, to=0.9, orient='horizontal', length=200, command=self.on_factor_change)
         factor_slider.grid(row=2, column=2, columnspan=2, padx=5, pady=(10,0), sticky='ew')
-        ttk.Entry(tab, textvariable=self.factor, width=15).grid(row=2, column=4, padx=10, pady=(10,0), sticky='nsew')
-        offset_label = ttk.Label(tab, text="Offset:")
+        factor_entry = ttk.Entry(tab, textvariable=self.factor_entry, width=15)
+        factor_entry.grid(row=2, column=4, padx=10, pady=(10,0), sticky='nsew')
+        offset_label = ttk.Label(tab, text="Offset (1/1000th):")
         offset_label.grid(row=2, column=5, padx=5, pady=(10,0), sticky='nse')
         offset_slider = ttk.Scale(tab, variable=self.offset, from_=-0.5, to=0.5, orient='horizontal', length=200, command=self.on_offset_change)
         offset_slider.grid(row=2, column=6, columnspan=2, padx=5, pady=(10,0), sticky='ew')
-        ttk.Entry(tab, textvariable=self.offset, width=15).grid(row=2, column=8, padx=10, pady=(10,0), sticky='nsew')
+        offset_entry = ttk.Entry(tab, textvariable=self.offset_entry, width=15)
+        offset_entry = ttk.Entry(tab, textvariable=self.offset_entry, width=15)
+        offset_entry.grid(row=2, column=8, padx=10, pady=(10,0), sticky='nsew')
         ttk.Button(tab, text='Reset', command=self.reset, width=5, bootstyle=WARNING).grid(row=2, rowspan=4, column=10, padx=10, pady=(10,10), sticky='nsew')
 
         setpoint_low_label = ttk.Label(tab, text="Setpoint Low:")
@@ -109,6 +113,8 @@ class AnalogCalibration_Panel:
         sp_high_entry.bind("<Return>", lambda _: self.on_sp_high_entry())
         self.offset.trace_add("write", lambda *args, **kwargs: self.redraw())
         self.factor.trace_add("write", lambda *args, **kwargs: self.redraw())
+        offset_entry.bind("<Return>", lambda *args, **kwargs: self.on_offset_entry())
+        factor_entry.bind("<Return>", lambda *args, **kwargs: self.on_factor_entry())
         entry_perc_low.bind("<Return>", lambda event: self.calc_factor(False))
         entry_perc_high.bind("<Return>", lambda event: self.calc_factor(True))
         entry_adj_low.bind("<Return>",  lambda event: self.calc_perc(False))
@@ -127,7 +133,7 @@ class AnalogCalibration_Panel:
         y,_ = self.lin_func()
         self.adj_line.set_ydata(y)
         self.ax.set_xlim(float(self.setpoint_low.get()) - 100, float(self.setpoint_high.get()) + 100)
-        self.ax.set_ylim([min(float(self.setpoint_low.get()), float(self.adj_low.get())) - 200, max(float(self.setpoint_high.get()), float(self.adj_high.get())) + 500])
+        self.ax.set_ylim([min(float(self.setpoint_low.get()), float(self.adj_low.get())) - 100, max(float(self.setpoint_high.get()), float(self.adj_high.get())) + 200])
         if self.v_low: self.v_low.remove()
         if self.v_high: self.v_high.remove()
         arrow_low = "<-" if (self.mode.get() != "Adjustment") else "->"
@@ -155,6 +161,8 @@ class AnalogCalibration_Panel:
         self.offset.set(0.)
         self.perc_low.set(0.00)
         self.perc_high.set(0.00)
+        self.factor_entry.set(1.)
+        self.offset_entry.set(0.)
         self.redraw()
 
     def calc_deltas(self):
@@ -178,7 +186,9 @@ class AnalogCalibration_Panel:
         rise = delta - float(self.adj_low.get()) if high else float(self.adj_high.get()) - delta
         slope = rise/run
         self.factor.set("{:.6f}".format(2 - slope))
+        self.factor_entry.set(self.factor.get())
         self.offset.set("{:.6f}".format((delta - slope*float(sp))/1000))
+        self.offset_entry.set(self.offset.get())
         self.redraw()
 
     def calc_perc(self, high):
@@ -219,7 +229,7 @@ class AnalogCalibration_Panel:
         self.annot_high.get_bbox_patch().set_alpha(0.4)
 
     def update_annot(self, ind, x, y):
-        width_px, height_px = self.fig.get_size_inches() * self.fig.dpi
+        _, height_px = self.fig.get_size_inches() * self.fig.dpi
         adj_x,adj_y = self.adj_line.get_data()
         _,base_y = self.base_line.get_data()
         x0 = adj_x[ind["ind"][0]]
@@ -232,7 +242,6 @@ class AnalogCalibration_Panel:
         else:
             self.annot.set_text("Base: {:.2f}\nAct: {:.2f}\n{:.2f}%".format(x0,y0,perc))
         x_y = (float(-x/3) + 50, float(abs(height_px/6 - y/6)))
-        print(x_y)
         self.annot.set_position(x_y)
         self.annot.get_bbox_patch().set_facecolor(c.COLORS["info"])
         self.annot.get_bbox_patch().set_alpha(0.4)
@@ -263,18 +272,20 @@ class AnalogCalibration_Panel:
 
     def on_sp_low_entry(self):
         try:
-            sp = int(float(self.setpoint_low_entry.get()))
-            if sp > 0 and sp < int(float(self.setpoint_high.get())):
-                self.setpoint_low.set(sp)
+            val = int(float(self.setpoint_low_entry.get()))
+            if val < 0: val = 0
+            if val >= int(float(self.setpoint_high.get())): val = int(float(self.setpoint_high.get())) - 1
+            self.on_sp_low_change(val)
         except:
             self.setpoint_low_entry.set(self.setpoint_low.get())
     
     def on_sp_high_entry(self):
         try:
-            sp = int(float(self.setpoint_high_entry.get()))
-            if sp > int(float(self.setpoint_low.get())) and sp <= self.max_x:
-                self.setpoint_high.set(sp)
-        except:
+            val = int(float(self.setpoint_high_entry.get()))
+            if val <= int(float(self.setpoint_low.get())): val = int(float(self.setpoint_low.get())) + 1
+            if val > self.max_x: val = self.max_x
+            self.on_sp_high_change(val)
+        except ValueError:
             self.setpoint_high_entry.set(self.setpoint_high.get())
 
     def on_offset_change(self, val):
@@ -283,13 +294,35 @@ class AnalogCalibration_Panel:
         stepped_val = round(float_val / resolution) * resolution
         self.offset.set("{:.6f}".format(float(stepped_val)))
         self.factor.set("{:.6f}".format(float(self.factor.get())))
+        self.offset_entry.set("{:.6f}".format(float(stepped_val)))
+        self.factor_entry.set("{:.6f}".format(float(self.factor.get())))
 
     def on_factor_change(self, val):
         float_val = float(val)
         resolution = 0.000001
         stepped_val = round(float_val / resolution) * resolution
         self.offset.set("{:.6f}".format(float(self.offset.get())))
-        self.factor.set("{:.6f}".format(stepped_val))
+        self.factor.set("{:.6f}".format(float(stepped_val)))
+        self.offset_entry.set("{:.6f}".format(float(self.offset.get())))
+        self.factor_entry.set("{:.6f}".format(float(stepped_val)))
+
+    def on_offset_entry(self):
+        try:
+            val = float(self.offset_entry.get())
+            if val > 0.5: val = 0.5
+            if val < -0.5: val = -0.5
+            self.on_offset_change(val)
+        except ValueError:
+            self.offset_entry.set(self.offset.get())
+    
+    def on_factor_entry(self):
+        try:
+            val = float(self.factor_entry.get())
+            if val > 1.1: val = 1.1
+            if val < 0.9: val = 0.9
+            self.on_factor_change(val)
+        except ValueError:
+            self.factor_entry.set(self.factor.get())
 
     def on_radio_change(self):
         if self.mode.get() == "Adjustment":

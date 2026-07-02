@@ -9,13 +9,15 @@ import Delta.DeltaConstants as dc
 import ctypes
 import platform
 
+root = ttk.Window(themename="solar", title="MaintTools")
+
 if platform.system() == 'Windows':
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
-    except:
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)
-
-root = ttk.Window(themename="solar", title="MaintTools")
+    except AttributeError:
+        ctypes.windll.user32.SetProcessDPIAware()
+if platform.system() == 'Darwin':
+    root.tk.call('tk', 'scaling', 2.0)
 
 default_font = nametofont("TkDefaultFont")
 default_font.configure(family="Segoe UI", size=10, weight="normal")
