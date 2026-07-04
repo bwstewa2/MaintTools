@@ -43,7 +43,21 @@ This software is tailored to the parameter check proceedures of Veeco Ionmill an
 - Max Error: the value of error between the values. 
 
 ## Target Wear
-TODO
+This Program allows you to calculate the wear of several targets and give visual indication of how warn a target is, allowing the user to make a better decision about replacing. 
+
+### Needed before use:
+- Target wear depth measurement.
+- TRS target thiskness measurement.
+
+### Run:
+- Select number of targets to be measure with slider. 
+- Enter TRS target thickness measurements in appropriate entries. 
+- Enter target weear measurement in appropriate entries.
+- Press calculate. 
+- Use wear percentage and color gradient to determine if target needs to be changed. 
+
+### results: 
+- Wear percentage: Calculated vale to compare to target change specifications. 
 
 ## DeltaPy - Python version of Delta 
 This program is used to assist in performing manual hand-offs with Brooks robots and inaligners.
@@ -74,10 +88,29 @@ This program is used to assist in performing manual hand-offs with Brooks robots
 - Red dot: represents the direction and magnitude of the change needed by the robots end-effector.
 - Red triangle: Represents the wafer not, and aligner post position. 
 
-
 ## Analog Calibration:
-TODO
- 
+This program is intended for Engineers when making adjustments to beam current or other power supply adjustements. 
+Note: Offset needs to be scaled to calculated value. Program is currently set to adjust Beam current often measured in mA (milliamperes). 0.001 = 1 mA. 
+If adjusting A or W: 1.000 = 1 A or W. 
+Note: Due to inconsistency of readbacks tool to tool, these values will not be perfect. Rather this tool should be used as a refernce as to how to best make adjustments.
+
+### Needed before use:
+- Current calibration factor and offset database values.
+- (or) two of the following values to compare: Programmable, tool computer readback, or power supply readback. 
+
+### Run:
+- Select Mode on radio buttions:
+	- Adjustment: Select this when trying to adjust a power supply from nominal to a new power level by way of percentage or prefered power supply output. 
+		- Enter the sampled nominal power setting in the setpoint entry.
+		- Enter the power setting adjustment or percentage you wish the power supply to output to be changed to in thier correlating entry. 
+	- Correction: Select this when trying to bring a power supply readback or programmable into a nominal range. 
+		- Enter the sampled nominal power setting or readback in the setpoint entry.
+		- Enter the actual power supply reading in the Actual entry. 
+	- Press Enter
+	- Use Calibration Factor and Offset to make adjustment in database. 
+- Use can also manually adjust Calibration Factor and offset to align setpoint and (actual/adjustment) value as the like. 
+- Use the reset button to reset all fields. 
+
 Please reach out to me for corrections, suggestions, and comments.
  
  
