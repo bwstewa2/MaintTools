@@ -108,6 +108,7 @@ Note: Due to inconsistency of readbacks tool to tool, these values will not be p
 		- Enter the actual power supply reading in the Actual entry. 
 	- Press Enter
 	- Use Calibration Factor and Offset to make adjustment in database. 
+- Lock checkbox links the low and high percentage together. Checking the box will disable the high percentange and adjustment entries. Any changes to the low percent and adjustment will change the high adjustmet by the same percent. 
 - Use can also manually adjust Calibration Factor and offset to align setpoint and (actual/adjustment) value as the like. 
 - Use the reset button to reset all fields. 
 
