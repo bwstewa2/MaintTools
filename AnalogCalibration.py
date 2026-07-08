@@ -25,6 +25,9 @@ class AnalogCalibration_Panel:
         self.perc_low = ttk.StringVar(value=0.00)
         self.perc_high = ttk.StringVar(value=0.00)
         self.mode = ttk.StringVar(value="Adjustment")
+        self.lock = ttk.BooleanVar(value=False)
+        self.unlocked = '\U0001F513'
+        self.locked = '\U0001F512'
 
         self.x = np.linspace(0, self.max_x, self.max_x)
         y, _ = self.lin_func()
@@ -63,7 +66,7 @@ class AnalogCalibration_Panel:
         rb2.grid(row=1, column=3, padx=(0,10), pady=(10,0), sticky='nse')
 
         factor_label = ttk.Label(tab, text="Calibration Factor:")
-        factor_label.grid(row=2, column=1, padx=5, pady=(10,0), sticky='nse')
+        factor_label.grid(row=2, column=0, columnspan=2, padx=5, pady=(10,0), sticky='nse')
         factor_slider = ttk.Scale(tab, variable=self.factor, from_=1.1, to=0.9, orient='horizontal', length=200, command=self.on_factor_change)
         factor_slider.grid(row=2, column=2, columnspan=2, padx=5, pady=(10,0), sticky='ew')
         factor_entry = ttk.Entry(tab, textvariable=self.factor_entry, width=15)
@@ -78,7 +81,7 @@ class AnalogCalibration_Panel:
         ttk.Button(tab, text='Reset', command=self.reset, width=5, bootstyle=WARNING).grid(row=2, rowspan=4, column=10, padx=10, pady=(10,10), sticky='nsew')
 
         setpoint_low_label = ttk.Label(tab, text="Setpoint Low:")
-        setpoint_low_label.grid(row=3, column=1, padx=5, pady=(10,0), sticky='nse')
+        setpoint_low_label.grid(row=3, column=0, columnspan=2, padx=5, pady=(10,0), sticky='nse')
         setpoint_high_label = ttk.Label(tab, text="Setpoint High:")
         setpoint_high_label.grid(row=3, column=5, padx=5, pady=(10,0), sticky='nse')
         self.sp_low_slider = ttk.Scale(tab, variable=self.setpoint_low, from_=0, to=int(float(self.setpoint_high.get()))-1, orient='horizontal', length=200, command=self.on_sp_low_change)
@@ -98,14 +101,17 @@ class AnalogCalibration_Panel:
         self.low_adj_label.grid(row=4, column=3, columnspan=1, padx=5, pady=(10,10), sticky='nse')
         self.high_adj_label = ttk.Label(tab, text="Adjusted High:")
         self.high_adj_label.grid(row=4, column=7, columnspan=1, padx=5, pady=(10,10), sticky='nse')
-        entry_adj_low = ttk.Entry(tab, textvariable=self.adj_low, width=5)
-        entry_adj_low.grid(row=4, column=4, padx=10, pady=(10,10), sticky='nsew')
-        entry_adj_high = ttk.Entry(tab, textvariable=self.adj_high, width=5)
-        entry_adj_high.grid(row=4, column=8, padx=10, pady=(10,10), sticky='nsew')
-        entry_perc_low = ttk.Entry(tab, textvariable=self.perc_low, width=5)
-        entry_perc_low.grid(row=4, column=2, padx=10, pady=(10,10), sticky='nsew')
-        entry_perc_high = ttk.Entry(tab, textvariable=self.perc_high, width=5)
-        entry_perc_high.grid(row=4, column=6, padx=10, pady=(10,10), sticky='nsew')
+        self.entry_adj_low = ttk.Entry(tab, textvariable=self.adj_low, width=5)
+        self.entry_adj_low.grid(row=4, column=4, padx=10, pady=(10,10), sticky='nsew')
+        self.entry_adj_high = ttk.Entry(tab, textvariable=self.adj_high, width=5)
+        self.entry_adj_high.grid(row=4, column=8, padx=10, pady=(10,10), sticky='nsew')
+        self.entry_perc_low = ttk.Entry(tab, textvariable=self.perc_low, width=5)
+        self.entry_perc_low.grid(row=4, column=2, padx=(0,5), pady=(10,10), sticky='nsew')
+        self.entry_perc_high = ttk.Entry(tab, textvariable=self.perc_high, width=5)
+        self.entry_perc_high.grid(row=4, column=6, padx=10, pady=(10,10), sticky='nsew')
+        self.lock_cb = ttk.Checkbutton(tab, text=self.unlocked, variable=self.lock, command=self.checkbox_changed, compound='right')
+        self.lock_cb.grid(row=4, column=0, padx=(10, 0), pady=(10,10), sticky='w')
+
 
         self.setpoint_low.trace_add("write", lambda *args, **kwargs: self.redraw())
         self.setpoint_high.trace_add("write", lambda *args, **kwargs: self.redraw())
@@ -115,10 +121,10 @@ class AnalogCalibration_Panel:
         self.factor.trace_add("write", lambda *args, **kwargs: self.redraw())
         offset_entry.bind("<Return>", lambda *args, **kwargs: self.on_offset_entry())
         factor_entry.bind("<Return>", lambda *args, **kwargs: self.on_factor_entry())
-        entry_perc_low.bind("<Return>", lambda event: self.calc_factor(False))
-        entry_perc_high.bind("<Return>", lambda event: self.calc_factor(True))
-        entry_adj_low.bind("<Return>",  lambda event: self.calc_perc(False))
-        entry_adj_high.bind("<Return>", lambda event: self.calc_perc(True))
+        self.entry_perc_low.bind("<Return>", lambda event: self.calc_factor(False))
+        self.entry_perc_high.bind("<Return>", lambda event: self.calc_factor(True))
+        self.entry_adj_low.bind("<Return>",  lambda event: self.calc_perc(False))
+        self.entry_adj_high.bind("<Return>", lambda event: self.calc_perc(True))
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=tab)
         self.canvas.draw()
@@ -175,12 +181,13 @@ class AnalogCalibration_Panel:
     def calc_factor(self, high):
         sp_l = self.setpoint_low.get()
         sp_h = self.setpoint_high.get()
-        sp = self.setpoint_low.get()
-        perc = self.perc_low.get()
-        if high:
-            perc = self.perc_high.get()
-            sp = self.setpoint_high.get()
-
+        sp = self.setpoint_high.get() if high else self.setpoint_low.get()
+        perc = self.perc_high.get() if high else self.perc_low.get()
+        if self.lock.get():
+            self.perc_high.set(perc)
+            self.adj_high.set(float(self.setpoint_high.get())*(1+(float(perc)/100)))
+            
+    
         delta = float(sp) * (1 + float(perc)/100)
         run = float(sp_h) - float(sp_l)
         rise = delta - float(self.adj_low.get()) if high else float(self.adj_high.get()) - delta
@@ -346,4 +353,12 @@ class AnalogCalibration_Panel:
         self.adj_high.set(sp)
         self.calc_perc(True)
 
-
+    def checkbox_changed(self):
+        if self.lock.get() == False:
+            self.lock_cb.configure(text=self.unlocked)
+            self.entry_perc_high.state(['!disabled'])
+            self.entry_adj_high.state(['!disabled'])
+        else:
+            self.lock_cb.configure(text=self.locked)
+            self.entry_perc_high.state(['disabled'])
+            self.entry_adj_high.state(['disabled'])
