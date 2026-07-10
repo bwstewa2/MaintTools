@@ -112,6 +112,7 @@ Note: Due to inconsistency of readbacks tool to tool, these values will not be p
 - Use can also manually adjust Calibration Factor and offset to align setpoint and (actual/adjustment) value as the like. 
 - Use the reset button to reset all fields. 
 
-Please reach out to me for corrections, suggestions, and comments.
+## Coming soon:
+- Unit Conversion.
  
  
