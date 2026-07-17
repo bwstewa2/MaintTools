@@ -5,6 +5,7 @@ from ParameterCheck import Parameter_Panel
 from AnalogCalibration import AnalogCalibration_Panel
 from TargetWear import TargetWear_Panel
 from Delta.Delta import Delta_Panel
+from UnitConversion import UnitConversion_Panel
 import Delta.DeltaConstants as dc
 import ctypes
 import platform
@@ -36,7 +37,8 @@ panels = {
     "Parameters Check": Parameter_Panel(), 
     "Target Wear": TargetWear_Panel(), 
     "Delta": Delta_Panel(), 
-    "Analog Calibration": AnalogCalibration_Panel()
+    "Analog Calibration": AnalogCalibration_Panel(),
+    "Unit Conversion": UnitConversion_Panel()
     }
 
 for name, panel in panels.items():
