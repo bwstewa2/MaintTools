@@ -17,6 +17,7 @@ AXIS_MIN = 1e-6
 TIME_DEFAULT = 15
 TIME_MIN = 1
 TIME_MAX = 30
+DEFAULT_DOUBLE = "{:.2e}".format(0)
 
 class Leakback_Panel:
     """Panel for calculating and visualizing vacuum chamber leakback rate of rise."""
@@ -31,11 +32,11 @@ class Leakback_Panel:
 
     def _init_vars(self):
         """Initialize all tkinter control variables."""
-        self.pressure_start = ttk.DoubleVar(value="{:.2e}".format(0))
-        self.pressure_end   = ttk.DoubleVar(value="{:.2e}".format(0))
-        self.delta          = ttk.DoubleVar(value="{:.2e}".format(0))
-        self.ror            = ttk.DoubleVar(value="{:.2e}".format(0))
-        self.fail           = ttk.DoubleVar(value="{:.2e}".format(0))
+        self.pressure_start = ttk.DoubleVar(value=DEFAULT_DOUBLE)
+        self.pressure_end   = ttk.DoubleVar(value=DEFAULT_DOUBLE)
+        self.delta          = ttk.DoubleVar(value=DEFAULT_DOUBLE)
+        self.ror            = ttk.DoubleVar(value=DEFAULT_DOUBLE)
+        self.fail           = ttk.DoubleVar(value=DEFAULT_DOUBLE)
         self.chamber_type   = ttk.StringVar(value=f"{DEFAULT_CHAMBER} ({CHAMBER_SIZES[DEFAULT_CHAMBER]} Liters)")
         self.chamber_size   = ttk.DoubleVar(value=CHAMBER_SIZES[DEFAULT_CHAMBER])
         self.checkbox_value = ttk.BooleanVar(value=False)
@@ -230,8 +231,8 @@ class Leakback_Panel:
             self.delta.set("{:.2e}".format(delta_calc))
             self.ror.set("{:.2e}".format(ror_calc))
         except ValueError:
-            self.delta.set("{:.2e}".format(0))
-            self.ror.set("{:.2e}".format(0))
+            self.delta.set(DEFAULT_DOUBLE)
+            self.ror.set(DEFAULT_DOUBLE)
         self.redraw()
 
     # ------------------------------------------------------------------ #
@@ -345,6 +346,6 @@ class Leakback_Panel:
     def clear(self, event=None):
         """Reset all inputs and outputs to zero and redraw the plot."""
         for var in (self.pressure_start, self.pressure_end, self.delta, self.ror):
-            var.set("{:.2e}".format(0))
+            var.set(DEFAULT_DOUBLE)
         self.fail.set("{:.2e}".format(self._calc_fail()))
         self.redraw()
