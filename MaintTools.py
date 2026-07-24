@@ -12,15 +12,6 @@ from AnalogCalibration import AnalogCalibration_Panel
 from TargetWear import TargetWear_Panel
 from UnitConversion import UnitConversion_Panel
 
-PANELS = {
-    "Leakback": Leakback_Panel(),
-    "Parameters Check": Parameter_Panel(),
-    "Target Wear": TargetWear_Panel(),
-    "Delta": Delta_Panel(),
-    "Analog Calibration": AnalogCalibration_Panel(),
-    "Unit Conversion": UnitConversion_Panel(),
-}
-
 def configure_dpi():
     """Configure DPI awareness based on the current operating system."""
     system = platform.system()
@@ -72,6 +63,15 @@ def on_closing():
 #                 MAIN                 #
 ########################################
 root = ttk.Window(themename="solar", title="MaintTools")
+
+PANELS = {
+    "Leakback": Leakback_Panel(),
+    "Parameters Check": Parameter_Panel(),
+    "Target Wear": TargetWear_Panel(),
+    "Delta": Delta_Panel(),
+    "Analog Calibration": AnalogCalibration_Panel(),
+    "Unit Conversion": UnitConversion_Panel(),
+}
 
 configure_dpi()
 configure_font()
