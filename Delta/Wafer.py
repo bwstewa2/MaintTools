@@ -6,7 +6,7 @@ import Delta.DeltaConstants as dc
 
 ### Constants ###
 OFFSET            = 10
-MARKER_RADIUS     = 1.5
+MARKER_RADIUS     = 3
 TRIANGLE_SIDE     = 5
 DELTA_SCALE       = 1000
 DEFAULT_ZOOM      = 0.25   # zoom/4 fraction used for the reference ring at zoom=1
@@ -60,8 +60,10 @@ class Wafer:
 
         # Center marker
         self.waf_canvas.create_oval(
-            r - MARKER_RADIUS + o, r + MARKER_RADIUS + o,
-            r + MARKER_RADIUS + o, r - MARKER_RADIUS + o,
+            r - MARKER_RADIUS + o,
+            r - MARKER_RADIUS + o,
+            r + MARKER_RADIUS + o,
+            r + MARKER_RADIUS + o,
             fill=c.COLORS["inputbg"],
         )
 
@@ -146,21 +148,20 @@ class Wafer:
         self.waf_canvas.delete(self._delta_item)
         self.waf_canvas.delete(self._zoom_ring)
 
-        x_mil = round(x, 1) / DELTA_SCALE
-        y_mil = round(y, 1) / DELTA_SCALE
+        x_mil = x / DELTA_SCALE
+        y_mil = y / DELTA_SCALE
         scale = self.radius / (size / 2) * zoom
 
-        cx = self.radius - scale * x_mil + OFFSET
-        cy = self.radius + scale * y_mil + OFFSET
+        cx = round(self.radius - scale * x_mil + OFFSET, 1)
+        cy = round(self.radius + scale * y_mil + OFFSET, 1)
 
         self._zoom_ring  = self._make_zoom_ring(zoom)
         self._delta_item = self.waf_canvas.create_oval(
-            round(cx - MARKER_RADIUS, 1),
-            round(cy - MARKER_RADIUS, 1),
-            round(cx + MARKER_RADIUS, 1),
-            round(cy + MARKER_RADIUS, 1),
-            fill=c.COLORS["primary"],
-            outline="",
+            cx - MARKER_RADIUS,
+            cy - MARKER_RADIUS,
+            cx + MARKER_RADIUS,
+            cy + MARKER_RADIUS,
+            outline=c.COLORS["primary"],
         )
 
     def remove_delta(self):
