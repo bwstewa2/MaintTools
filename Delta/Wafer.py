@@ -1,81 +1,169 @@
 import tkinter as tk
-from tkinter import ttk
-import Delta.DeltaConstants as dc
+
 import Constants as c
+import Delta.DeltaConstants as dc
+
+
+### Constants ###
+OFFSET            = 10
+MARKER_RADIUS     = 1.5
+TRIANGLE_SIDE     = 5
+DELTA_SCALE       = 1000
+DEFAULT_ZOOM      = 0.25   # zoom/4 fraction used for the reference ring at zoom=1
+
 
 class Wafer:
-    def __init__(self, root, size):
-        self.offset = 10
-        self.marker_radius = 1.5
-        self.triangle_side_len = 5
-        self.radius=size
-        self.diameter=self.radius*2
-        self.waf_canvas = tk.Canvas(root, width=self.diameter+20, height=self.diameter+20)
-        self.zoom_line = self.waf_canvas.create_rectangle(self.diameter + 100, self.radius - self.offset, 100, self.radius + 3 * self.offset, fill=c.COLORS["warning"])
-        self.zoom_line = self.waf_canvas.create_rectangle(self.diameter - 90, 0, 100, self.radius + 3 * self.offset, fill=c.COLORS["secondary"])
-        self.waf = self.waf_canvas.create_oval(self.offset, self.offset, self.diameter+self.offset, self.diameter+self.offset,  fill=c.COLORS["selectbg"], outline=c.COLORS["selectbg"])
-        self.zoom_line = self.waf_canvas.create_oval(self.diameter - (self.radius-self.radius*1/4)+self.offset, 
-                                                     self.diameter - (self.radius-self.radius*1/4)+self.offset, 
-                                                     self.diameter - (self.radius+self.radius*1/4)+self.offset, 
-                                                     self.diameter - (self.radius+self.radius*1/4)+self.offset, 
-                                                     outline=c.COLORS["primary"])     
-        self.center = self.waf_canvas.create_oval(self.radius- self.marker_radius+self.offset, self.radius+ self.marker_radius+self.offset, 
-                                                  self.radius+ self.marker_radius+self.offset, self.radius- self.marker_radius+self.offset, fill=c.COLORS["inputbg"])
-        self.notch = self.waf_canvas.create_polygon(self.radius-self.triangle_side_len+self.offset, self.offset, self.radius+self.triangle_side_len, self.offset, self.radius, self.triangle_side_len, fill='red')
-        self.delta = None
-        self.stn = ttk.Label(self.waf_canvas, text="Station Adjustment")
+    """Tkinter canvas widget that displays a wafer, notch position, and delta marker."""
+
+    def __init__(self, root: tk.Widget, size: int):
+        self.radius   = size
+        self.diameter = size * 2
+
+        self._build_canvas(root)
+        self._draw_base()
+
+        self._delta_item = None
         self.waf_canvas.pack(fill="both", expand=True)
 
-    # Change wafer notch post position on GUI
-    def change_position(self, position):
-        self.waf_canvas.delete(self.notch)
-        if (position):
-            if position == dc.ZERO:
-                self.notch = self.waf_canvas.create_polygon(self.diameter+self.offset, 
-                                                            self.radius+self.triangle_side_len+self.offset, 
-                                                            self.diameter+self.offset, 
-                                                            self.radius-self.triangle_side_len+self.offset, 
-                                                            self.diameter-2*self.triangle_side_len+self.offset, 
-                                                            self.radius+self.offset, 
-                                                            fill=c.COLORS["primary"])
-            elif position == dc.TWO_SEVENTY:
-                self.notch = self.waf_canvas.create_polygon(self.radius-self.triangle_side_len+self.offset, 
-                                                            self.diameter+self.offset, 
-                                                            self.radius+self.triangle_side_len+self.offset, 
-                                                            self.diameter+self.offset, 
-                                                            self.radius+self.offset, 
-                                                            self.diameter-2*self.triangle_side_len+self.offset, 
-                                                            fill=c.COLORS["primary"])
-            elif position == dc.ONE_EIGHTY:
-                self.notch = self.waf_canvas.create_polygon(self.offset, self.radius+self.triangle_side_len+self.offset, 
-                                                            self.offset, 
-                                                            self.radius-self.triangle_side_len+self.offset, 
-                                                            2*self.triangle_side_len+self.offset, 
-                                                            self.radius+self.offset, 
-                                                            fill=c.COLORS["primary"])
-            else:
-                self.notch = self.waf_canvas.create_polygon(self.radius-self.triangle_side_len+self.offset, 
-                                                            self.offset, self.radius+self.triangle_side_len+self.offset, 
-                                                            self.offset, self.radius+self.offset, 
-                                                            2*self.triangle_side_len+self.offset, 
-                                                            fill=c.COLORS["primary"])
+    # ------------------------------------------------------------------ #
+    #  Initialization                                                      #
+    # ------------------------------------------------------------------ #
 
-    # Add Delta marker to GUI
-    def add_delta(self, x, y, size, zoom):
-        self.waf_canvas.delete(self.delta)
-        self.waf_canvas.delete(self.zoom_line)
-        x = round(x, 1)/1000
-        y = round(y, 1)/1000
-        self.zoom_line = self.waf_canvas.create_oval(self.diameter - (self.radius-self.radius*zoom/4)+self.offset, 
-                                                     self.diameter - (self.radius-self.radius*zoom/4)+self.offset, 
-                                                     self.diameter - (self.radius+self.radius*zoom/4)+self.offset, 
-                                                     self.diameter - (self.radius+self.radius*zoom/4)+self.offset, 
-                                                     outline=c.COLORS["primary"])   
-        self.delta = self.waf_canvas.create_oval(round((self.radius- self.marker_radius)-(self.radius/(size/2)*x*zoom)+self.offset, 1), 
-                                                round((self.radius+ self.marker_radius)+(self.radius/(size/2)*y*zoom)+self.offset, 1), 
-                                                round((self.radius+ self.marker_radius)-(self.radius/(size/2)*x*zoom)+self.offset, 1), 
-                                                round((self.radius- self.marker_radius)+(self.radius/(size/2)*y*zoom)+self.offset, 1), fill=c.COLORS["primary"], outline="")      
+    def _build_canvas(self, root: tk.Widget):
+        """Create the tk.Canvas sized to fit the wafer with offset padding."""
+        self.waf_canvas = tk.Canvas(
+            root,
+            width=self.diameter  + OFFSET * 2,
+            height=self.diameter + OFFSET * 2,
+        )
 
-    # Remove Delta marker from GUI
+    def _draw_base(self):
+        """Draw the static base elements: robot arm, laser, wafer, center, zoom ring, and notch."""
+        d, r, o, t = self.diameter, self.radius, OFFSET, TRIANGLE_SIDE
+
+        # Robot arm and laser representations
+        self.waf_canvas.create_rectangle(
+            7 * d / 8 + o, d + 100, 1 * d / 8 + o, r + o,
+            fill=c.COLORS["secondary"],
+        )
+        self.waf_canvas.create_rectangle(
+            d + 100, r - o, 100, r + 3 * o,
+            fill=c.COLORS["warning"],
+        )
+
+        # Wafer body
+        self.waf_canvas.create_oval(
+            o, o, d + o, d + o,
+            fill=c.COLORS["selectbg"],
+            outline=c.COLORS["selectbg"],
+        )
+
+        # Center marker
+        self.waf_canvas.create_oval(
+            r - MARKER_RADIUS + o, r + MARKER_RADIUS + o,
+            r + MARKER_RADIUS + o, r - MARKER_RADIUS + o,
+            fill=c.COLORS["inputbg"],
+        )
+
+        # Default zoom reference ring (zoom = 1)
+        self._zoom_ring = self._make_zoom_ring(zoom=1.0)
+
+        # Default notch (top — TWO_SEVENTY position)
+        self._notch_item = self.waf_canvas.create_polygon(
+            r - t + o, o,
+            r + t + o, o,
+            r + o, 2 * t + o,
+            fill="red",
+        )
+
+    def _make_zoom_ring(self, zoom: float) -> int:
+        """Draw and return the canvas ID of the zoom reference ring."""
+        d, r, o = self.diameter, self.radius, OFFSET
+        inset = r * zoom / 4
+        return self.waf_canvas.create_oval(
+            d - (r - inset) + o,
+            d - (r - inset) + o,
+            d - (r + inset) + o,
+            d - (r + inset) + o,
+            outline=c.COLORS["primary"],
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Public Interface                                                    #
+    # ------------------------------------------------------------------ #
+
+    def change_position(self, position: str | None):
+        """Redraw the notch triangle at the given wafer flat/notch position.
+
+        Args:
+            position: One of dc.ZERO, dc.NINTY, dc.ONE_EIGHTY, dc.TWO_SEVENTY,
+                      or None to remove the notch entirely.
+        """
+        self.waf_canvas.delete(self._notch_item)
+        if not position:
+            self._notch_item = None
+            return
+
+        d, r, o, t = self.diameter, self.radius, OFFSET, TRIANGLE_SIDE
+
+        notch_coords = {
+            dc.ZERO: [
+                d + o,         r + t + o,
+                d + o,         r - t + o,
+                d - 2 * t + o, r + o,
+            ],
+            dc.NINTY: [
+                r - t + o, d + o,
+                r + t + o, d + o,
+                r + o,     d - 2 * t + o,
+            ],
+            dc.ONE_EIGHTY: [
+                o,         r + t + o,
+                o,         r - t + o,
+                2 * t + o, r + o,
+            ],
+            dc.TWO_SEVENTY: [
+                r - t + o, o,
+                r + t + o, o,
+                r + o,     2 * t + o,
+            ],
+        }
+
+        coords = notch_coords.get(position, notch_coords[dc.TWO_SEVENTY])
+        self._notch_item = self.waf_canvas.create_polygon(
+            *coords, fill=c.COLORS["primary"]
+        )
+
+    def add_delta(self, x: float, y: float, size: float, zoom: float):
+        """Draw the delta position marker and update the zoom reference ring.
+
+        Args:
+            x:    Eccentricity X component (raw mils before scaling).
+            y:    Eccentricity Y component (raw mils before scaling).
+            size: Wafer diameter in mils used to calculate the display scale.
+            zoom: Current zoom level — scales both the marker and ring.
+        """
+        self.waf_canvas.delete(self._delta_item)
+        self.waf_canvas.delete(self._zoom_ring)
+
+        x_mil = round(x, 1) / DELTA_SCALE
+        y_mil = round(y, 1) / DELTA_SCALE
+        scale = self.radius / (size / 2) * zoom
+
+        cx = self.radius - scale * x_mil + OFFSET
+        cy = self.radius + scale * y_mil + OFFSET
+
+        self._zoom_ring  = self._make_zoom_ring(zoom)
+        self._delta_item = self.waf_canvas.create_oval(
+            round(cx - MARKER_RADIUS, 1),
+            round(cy - MARKER_RADIUS, 1),
+            round(cx + MARKER_RADIUS, 1),
+            round(cy + MARKER_RADIUS, 1),
+            fill=c.COLORS["primary"],
+            outline="",
+        )
+
     def remove_delta(self):
-        self.waf_canvas.delete(self.delta)
+        """Remove the delta position marker from the canvas."""
+        self.waf_canvas.delete(self._delta_item)
+        self._delta_item = None
