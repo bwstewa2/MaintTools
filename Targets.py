@@ -17,11 +17,12 @@ CANVAS_PADDING = 40 # extra px per target added to canvas size
 CANVAS_BASE_SIZE = 150 # minimum canvas width/height
 
 class Targets:
-    def __init__(self, root, num_targets):
+    def __init__(self, root, num_targets, eotl):
         self.root = root
         self.ovals = []
+        self.targets = []
         self.w_h = CANVAS_PADDING * num_targets + CANVAS_BASE_SIZE
-        self.cmap = self._build_colormap()
+        self.cmap = self._build_colormap(eotl)
 
         self._build_canvas(root)
         self._build_colorbar(root)
@@ -31,16 +32,31 @@ class Targets:
 #  Initialization                                                      #
 # ------------------------------------------------------------------ #
 
-    def _build_colormap(self) -> mcolors.LinearSegmentedColormap:
-        """Build and return the wear-level color gradient."""
-        colors = [c.COLORS["light"],
-                       c.COLORS["success"],
-                       c.COLORS["primary"],
-                       c.COLORS["warning"],
-                       c.COLORS["danger"],
-                       c.COLORS["danger"]
+    def _build_colormap(self, danger_pct: float = 70.0) -> mcolors.LinearSegmentedColormap:
+        """Build a wear-level colormap where danger color begins at danger_pct.
+
+        Args:
+            danger_pct: Percentage (0–100) at which the danger color starts.
+        """
+        threshold = max(0.01, min(danger_pct / 100.0, 0.99))  # clamp to (0.01, 0.99)
+
+        color_stops = [
+            (0.0,                  c.COLORS["light"]),
+            (threshold * 0.33,     c.COLORS["success"]),
+            (threshold * 0.66,     c.COLORS["primary"]),
+            (threshold,            c.COLORS["warning"]),
+            (threshold + (1.0 - threshold) * 0.5, c.COLORS["danger"]),
+            (1.0,                  c.COLORS["danger"]),
         ]
-        return mcolors.LinearSegmentedColormap.from_list("custom_gradient", colors)
+
+        positions = [stop[0] for stop in color_stops]
+        colors    = [stop[1] for stop in color_stops]
+
+        return mcolors.LinearSegmentedColormap.from_list(
+            "target_wear",
+            list(zip(positions, colors))
+        )
+
 
     def _build_canvas(self, root: tk.Widget):
         """Create the tk.Canvas that targets are drawn on."""
@@ -51,24 +67,34 @@ class Targets:
 
     def _build_colorbar(self, root: tk.Widget):
         """Create and embed the matplotlib colorbar legend."""
-        gradient = np.linspace(0, 1, 100).reshape(-1, 1)
+        self.colorbar_root = root          # <-- store root for refresh
+        gradient = np.linspace(0, 1, GRADIENT_STEPS).reshape(-1, 1)
 
-        self.fig, ax = plt.subplots(figsize=COLORBAR_FIGSIZE)
-        ax.imshow(gradient, aspect='auto', cmap=self.cmap)
-        ax.get_xaxis().set_visible(False)
-        ax.set_ylim([0, GRADIENT_STEPS])
-        
+        self.fig, self.ax_cb = plt.subplots(figsize=COLORBAR_FIGSIZE)
+        self._draw_colorbar(gradient)
+
+        self.colorbar_canvas = FigureCanvasTkAgg(self.fig, master=root)
+        self.colorbar_canvas.draw()
+        self.colorbar_canvas.get_tk_widget().grid(row=0, column=1, sticky="ew")
+
+    def _draw_colorbar(self, gradient: np.ndarray):
+        """Draw the colorbar content onto self.ax_cb using the current colormap."""
+        self.ax_cb.clear()
+        self.ax_cb.imshow(gradient, aspect="auto", cmap=self.cmap)
+        self.ax_cb.get_xaxis().set_visible(False)
+        self.ax_cb.set_ylim([0, GRADIENT_STEPS])
         self.fig.set_facecolor(c.COLORS["bg"])
-        ax.set_facecolor(c.COLORS["bg"])
-        ax.tick_params(axis='both', colors=c.COLORS["inputfg"])
-        for spine in ax.spines.values():
+        self.ax_cb.set_facecolor(c.COLORS["bg"])
+        self.ax_cb.tick_params(axis="both", colors=c.COLORS["inputfg"])
+        for spine in self.ax_cb.spines.values():
             spine.set_color(c.COLORS["inputfg"])
+        self.fig.tight_layout()
 
-        plt.tight_layout()
-
-        colorbar_canvas = FigureCanvasTkAgg(self.fig, master=root)
-        colorbar_canvas.draw()
-        colorbar_canvas.get_tk_widget().grid(row=0, column=1, sticky='ew')
+    def _refresh_colorbar(self):
+        """Redraw the colorbar with the current colormap and update the canvas."""
+        gradient = np.linspace(0, 1, GRADIENT_STEPS).reshape(-1, 1)
+        self._draw_colorbar(gradient)
+        self.colorbar_canvas.draw()
 
 # ------------------------------------------------------------------ #
 #  Drawing                                                             #
@@ -105,8 +131,20 @@ class Targets:
                 font = "Helvetica 12 bold",
             )
 
+    def set_danger_threshold(self, eotl: float):
+        """Rebuild the colormap with a new danger threshold and refresh all targets.
+
+        Args:
+            eotl: Percentage (0–100) at which the danger color starts.
+        """
+        self.cmap = self._build_colormap(eotl)
+        self._refresh_colorbar()          
+        self.change_color(self.targets) 
+        
+
     def change_color(self, targets):
         """Update each oval's fill color based on its wear percentage variable."""
+        self.targets = targets
         for oval, target_var in zip(self.ovals, targets):
              rgba = self.cmap(target_var.get()/100)
              color = mcolors.to_hex(rgba)

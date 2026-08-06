@@ -15,3 +15,6 @@ COLORS = {
     "inputfg": "#A9BDBD",
     "inputbg": "#073642",
 }
+
+STYLE_PRIMARY = "primary.TEntry"
+STYLE_DANGER = "danger.TEntry"

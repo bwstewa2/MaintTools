@@ -9,8 +9,6 @@ import Constants as c
 ### Constants ###
 CHAMBER_SIZES = {"DLC/SIN": 680, "VEECO C2": 190, "VEECO NEXUS": 170}
 DEFAULT_CHAMBER = "DLC/SIN"
-PLOT_BG_COLOR = "#002B36"
-PLOT_FG_COLOR = "#A9BDBD"
 FAIL_THRESHOLD = 5e-5
 PRESSURE_FLOOR = 1e-10
 AXIS_MIN = 1e-6
@@ -37,6 +35,7 @@ class Leakback_Panel:
         self.delta          = ttk.DoubleVar(value=DEFAULT_DOUBLE)
         self.ror            = ttk.DoubleVar(value=DEFAULT_DOUBLE)
         self.fail           = ttk.DoubleVar(value=DEFAULT_DOUBLE)
+        self.fail_threshold = ttk.DoubleVar(value=FAIL_THRESHOLD)
         self.chamber_type   = ttk.StringVar(value=f"{DEFAULT_CHAMBER} ({CHAMBER_SIZES[DEFAULT_CHAMBER]} Liters)")
         self.chamber_size   = ttk.DoubleVar(value=CHAMBER_SIZES[DEFAULT_CHAMBER])
         self.checkbox_value = ttk.BooleanVar(value=False)
@@ -51,6 +50,7 @@ class Leakback_Panel:
 
         self.fig, self.ax = plt.subplots(figsize=(5, 4))
         self._style_plot()
+        self._style_ticks()
 
         self.ror_line, = self.ax.plot(self.x, y, label="ROR", color=c.COLORS["success"])
         self.fail_line  = self.ax.axhline(self.fail.get(), label="Fail", color=c.COLORS["warning"])
@@ -70,15 +70,15 @@ class Leakback_Panel:
         self.update_fail_annot()
 
         self.fig.canvas.mpl_connect("motion_notify_event", self.hover)
+        self.ax.callbacks.connect("ylim_changed", lambda ax: self._style_ticks())
 
     def _style_plot(self):
         """Apply color theme to the matplotlib axes and figure."""
-        self.ax.set_title("Leakback", color=PLOT_FG_COLOR)
-        self.ax.tick_params(axis="both", colors=PLOT_FG_COLOR)
-        self.fig.set_facecolor(PLOT_BG_COLOR)
-        self.ax.set_facecolor(PLOT_BG_COLOR)
+        self.ax.set_title("Leakback", color=c.COLORS["light"])
+        self.fig.set_facecolor(c.COLORS["bg"])
+        self.ax.set_facecolor(c.COLORS["bg"])
         for spine in self.ax.spines.values():
-            spine.set_color(PLOT_FG_COLOR)
+            spine.set_color(c.COLORS["light"])
 
     def _make_annot(self, arrow: bool):
         """Create and return a styled axes annotation, with or without an arrow."""
@@ -98,6 +98,13 @@ class Leakback_Panel:
         if arrow:
             kwargs["arrowprops"] = dict(arrowstyle="-|>", color=c.COLORS["inputfg"])
         return self.ax.annotate("", **kwargs)
+
+    def _style_ticks(self):
+        """Re-apply tick label colors after matplotlib regenerates them on ylim change."""
+        for label in self.ax.get_xticklabels() + self.ax.get_yticklabels():
+            label.set_color(c.COLORS["light"])
+        self.ax.tick_params(axis="both", which="major", colors=c.COLORS["light"])
+        self.ax.tick_params(axis="both", which="minor", colors=c.COLORS["secondary"])
 
     # ------------------------------------------------------------------ #
     #  UI Construction                                                     #
@@ -140,8 +147,9 @@ class Leakback_Panel:
     def _build_input_rows(self, tab):
         """Start pressure and end pressure input fields."""
         fields = [
-            ("Start Pressure:", self.pressure_start, 1),
-            ("End Pressure:",   self.pressure_end,   2),
+            ("Fail Threshold:", self.fail_threshold, 1),
+            ("Start Pressure:", self.pressure_start, 2),
+            ("End Pressure:",   self.pressure_end,   3),
         ]
         for label_text, var, row in fields:
             ttk.Label(tab, text=label_text).grid(
@@ -152,27 +160,30 @@ class Leakback_Panel:
             entry.bind("<Return>", self.calc_ror)
 
     def _build_output_rows(self, tab):
-        """Read-only output fields for delta, ROR, and fail threshold."""
+        """Read-only output fields for delta, fail threshold, and ROR."""
         fields = [
-            ("Pressure Delta:", self.delta, 3),
-            ("Rate of Rise:",   self.ror,   4),
-            ("Fails at:",       self.fail,  5),
+            ("Pressure Delta:", self.delta, 4, None, None),
+            ("Fails at:",       self.fail,  5, None, None),
+            ("Rate of Rise:",   self.ror,   6, "ror_entry", c.STYLE_PRIMARY),
         ]
-        for label_text, var, row in fields:
+        for label_text, var, row, attr, style in fields:
             ttk.Label(tab, text=label_text).grid(
                 row=row, column=1, padx=10, pady=(10, 0), sticky="nsew"
             )
-            ttk.Entry(tab, state="readonly", textvariable=var).grid(
-                row=row, column=2, padx=10, pady=(10, 0), sticky="nsew"
-            )
+            entry = ttk.Entry(tab, state="readonly", textvariable=var)
+            entry.grid(row=row, column=2, padx=10, pady=(10, 0), sticky="nsew")
+            if attr:
+                setattr(self, attr, entry)
+            if style: 
+                entry.configure(style=style)
 
     def _build_button_row(self, tab):
         """Calculate and Clear action buttons."""
         ttk.Button(tab, text="Calculate", command=self.calc_ror).grid(
-            row=6, column=2, padx=10, pady=(10, 10), sticky="nsew"
+            row=7, column=2, padx=10, pady=(10, 10), sticky="nsew"
         )
         ttk.Button(tab, text="Clear", command=self.clear, bootstyle=WARNING).grid(
-            row=6, column=3, columnspan=2, padx=10, pady=(10, 10), sticky="nsew"
+            row=7, column=3, columnspan=2, padx=10, pady=(10, 10), sticky="nsew"
         )
 
     def _build_time_controls(self, tab):
@@ -217,11 +228,14 @@ class Leakback_Panel:
 
     def _calc_fail(self) -> float:
         """Return the pressure value at which the leakback test fails."""
-        return max(
-            FAIL_THRESHOLD / self.chamber_size.get() * self.time.get() * 60
-            + self.pressure_start.get(),
-            PRESSURE_FLOOR,
-        )
+        try:
+            return max(
+                float(self.fail_threshold.get()) / self.chamber_size.get() * self.time.get() * 60
+                + float(self.pressure_start.get()),
+                PRESSURE_FLOOR,
+            )
+        except ValueError:
+            self.fail_threshold.set(FAIL_THRESHOLD)
 
     def calc_ror(self, event=None):
         """Calculate pressure delta and rate of rise, then redraw the plot."""
@@ -230,6 +244,10 @@ class Leakback_Panel:
             ror_calc   = delta_calc / (self.time.get() * 60) * self.chamber_size.get()
             self.delta.set("{:.2e}".format(delta_calc))
             self.ror.set("{:.2e}".format(ror_calc))
+            if self.ror.get() > self.fail.get():
+                self.ror_entry.configure(style=c.STYLE_DANGER)
+            else:
+                self.ror_entry.configure(style=c.STYLE_PRIMARY)
         except ValueError:
             self.delta.set(DEFAULT_DOUBLE)
             self.ror.set(DEFAULT_DOUBLE)
@@ -252,6 +270,7 @@ class Leakback_Panel:
             max(self.pressure_start.get(), AXIS_MIN),
             max(self.fail.get(), self.pressure_end.get()) * 2,
         ])
+        self.fig.tight_layout()
         self.canvas.draw()
 
     def update_fail_annot(self):

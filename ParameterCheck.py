@@ -50,7 +50,7 @@ class Parameter_Panel:
     def _build_header_labels(self, tab):
         """Grid parameter row labels and component column headers."""
         for i, name in enumerate(PARAMETERS):
-            ttk.Label(tab, text=name).grid(
+            ttk.Label(tab, text=name+":").grid(
                 row=i+2, column=1, padx=5, pady=(5,0), sticky='nsew'
             )
     
