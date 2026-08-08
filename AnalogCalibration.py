@@ -274,6 +274,10 @@ class AnalogCalibration_Panel:
 
     def calc_factor(self, high: bool):
         """Calculate and set factor/offset from a percent error input."""
+        c.str_nan_check([
+                    (self.perc_high, 0.00),
+                    (self.perc_low, 0.00),
+                             ])
         sp_l = float(self.setpoint_low.get())
         sp_h = float(self.setpoint_high.get())
         sp   = sp_h if high else sp_l
@@ -295,6 +299,10 @@ class AnalogCalibration_Panel:
 
     def calc_perc(self, high: bool):
         """Calculate percent error from an adjusted value entry, then update factor."""
+        c.str_nan_check([
+            (self.adj_high, self.setpoint_high.get()),
+            (self.adj_low, self.setpoint_low.get()),
+                     ])
         sp  = float(self.setpoint_high.get()) if high else float(self.setpoint_low.get())
         adj = float(self.adj_high.get())      if high else float(self.adj_low.get())
         pct = (adj - sp) / sp * 100 if sp != 0 else 0.0

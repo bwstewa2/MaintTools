@@ -3,7 +3,6 @@ from ttkbootstrap.constants import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-
 import Constants as c
 
 ### Constants ###
@@ -12,7 +11,7 @@ DEFAULT_CHAMBER = "DLC/SIN"
 FAIL_THRESHOLD = 5e-5
 PRESSURE_FLOOR = 1e-10
 AXIS_MIN = 1e-6
-TIME_DEFAULT = 15
+DEFAULT_TIME = 15
 TIME_MIN = 1
 TIME_MAX = 30
 DEFAULT_DOUBLE = "{:.2e}".format(0)
@@ -39,7 +38,7 @@ class Leakback_Panel:
         self.chamber_type   = ttk.StringVar(value=f"{DEFAULT_CHAMBER} ({CHAMBER_SIZES[DEFAULT_CHAMBER]} Liters)")
         self.chamber_size   = ttk.DoubleVar(value=CHAMBER_SIZES[DEFAULT_CHAMBER])
         self.checkbox_value = ttk.BooleanVar(value=False)
-        self.time           = ttk.IntVar(value=TIME_DEFAULT)
+        self.time           = ttk.IntVar(value=DEFAULT_TIME)
 
     def _init_plot(self):
         """Initialize the matplotlib figure, lines, annotations, and event hooks."""
@@ -143,6 +142,7 @@ class Leakback_Panel:
             variable=self.checkbox_value,
             command=self.checkbox_changed,
         ).grid(row=0, column=3, columnspan=2, padx=10, pady=(10, 0), sticky="nsew")
+        
 
     def _build_input_rows(self, tab):
         """Start pressure and end pressure input fields."""
@@ -188,7 +188,7 @@ class Leakback_Panel:
 
     def _build_time_controls(self, tab):
         """Time label, entry, and slider."""
-        ttk.Label(tab, text="Time:").grid(
+        ttk.Label(tab, text="Minutes:").grid(
             row=1, column=3, pady=(10, 0), sticky="nsew"
         )
         ttk.Entry(tab, textvariable=self.time).grid(
@@ -222,36 +222,37 @@ class Leakback_Panel:
     def _calc_y(self) -> np.ndarray:
         """Return the ROR pressure curve as a numpy array over self.x."""
         return (
-            self.pressure_start.get()
+            float(self.pressure_start.get())
             + (self.ror.get() / self.chamber_size.get()) * self.x * 60
         )
 
     def _calc_fail(self) -> float:
         """Return the pressure value at which the leakback test fails."""
-        try:
-            return max(
-                float(self.fail_threshold.get()) / self.chamber_size.get() * self.time.get() * 60
-                + float(self.pressure_start.get()),
-                PRESSURE_FLOOR,
-            )
-        except ValueError:
-            self.fail_threshold.set(FAIL_THRESHOLD)
+        return max(
+            float(self.fail_threshold.get()) / self.chamber_size.get() * self.time.get() * 60
+            + float(self.pressure_start.get()),
+            PRESSURE_FLOOR,
+        )
+
 
     def calc_ror(self, event=None):
         """Calculate pressure delta and rate of rise, then redraw the plot."""
-        try:
-            delta_calc = float(self.pressure_end.get()) - float(self.pressure_start.get())
-            ror_calc   = delta_calc / (self.time.get() * 60) * self.chamber_size.get()
-            self.delta.set("{:.2e}".format(delta_calc))
-            self.ror.set("{:.2e}".format(ror_calc))
-            if self.ror.get() > self.fail.get():
-                self.ror_entry.configure(style=c.STYLE_DANGER)
-            else:
-                self.ror_entry.configure(style=c.STYLE_PRIMARY)
-        except ValueError:
-            self.delta.set(DEFAULT_DOUBLE)
-            self.ror.set(DEFAULT_DOUBLE)
+        c.nan_check([
+                    (self.fail_threshold, FAIL_THRESHOLD),
+                    (self.pressure_start,  DEFAULT_DOUBLE),
+                    (self.pressure_end,    DEFAULT_DOUBLE),
+                    (self.time,            DEFAULT_TIME),
+                ])
+        delta_calc = float(self.pressure_end.get()) - float(self.pressure_start.get())
+        ror_calc   = delta_calc / (self.time.get() * 60) * self.chamber_size.get()
+        self.delta.set("{:.2e}".format(delta_calc))
+        self.ror.set("{:.2e}".format(ror_calc))
+        if self.ror.get() > self.fail.get():
+            self.ror_entry.configure(style=c.STYLE_DANGER)
+        else:
+            self.ror_entry.configure(style=c.STYLE_PRIMARY)
         self.redraw()
+
 
     # ------------------------------------------------------------------ #
     #  Plot Updates                                                        #
@@ -312,50 +313,64 @@ class Leakback_Panel:
     # ------------------------------------------------------------------ #
 
     def update_size(self, event=None):
-        """Resolve the selected or entered chamber type and update chamber_size."""
         raw = self.chamber_type.get()
-        key = raw.split(" (")[0]
+        name_part = raw.split(" (")[0]
 
         if self.checkbox_value.get():
-            # Manual numeric entry mode
-            if key in CHAMBER_SIZES:
-                size = int(raw.split(" (")[1].split(" Liters)")[0])
+            # Manual entry mode — user typed a raw number or a full display string
+            if name_part in CHAMBER_SIZES:
+                # Display string left over; extract its numeric size
+                try:
+                    size = int(raw.split(" (")[1].split(" Liters)")[0])
+                except (IndexError, ValueError):
+                    size = 0
             else:
                 try:
-                    size = int(raw)
+                    size = int(name_part)
                 except ValueError:
                     size = 0
             self.chamber_size.set(size)
             self.chamber_type.set(size)
+
         else:
-            # Dropdown selection mode
-            if key in CHAMBER_SIZES:
-                self.chamber_size.set(CHAMBER_SIZES[key])
+            # Combobox mode — expect "NAME (SIZE Liters)" or a leftover plain number
+            if name_part in CHAMBER_SIZES:
+                self.chamber_size.set(CHAMBER_SIZES[name_part])
             else:
+                # Handle a plain number left over from manual-entry mode
                 try:
-                    val = int(key)
+                    numeric = int(name_part)
                 except ValueError:
-                    val = None
-                if val in CHAMBER_SIZES.values():
-                    name = next(k for k, v in CHAMBER_SIZES.items() if v == val)
-                    self.chamber_size.set(val)
-                    self.chamber_type.set(f"{name} ({val} Liters)")
+                    numeric = None
+
+                matched_key = next(
+                    (k for k, v in CHAMBER_SIZES.items() if v == numeric), None
+                )
+                if matched_key is not None:
+                    self.chamber_size.set(numeric)
+                    self.chamber_type.set(f"{matched_key} ({numeric} Liters)")
                 else:
-                    self.chamber_type.set(f"{DEFAULT_CHAMBER} ({CHAMBER_SIZES[DEFAULT_CHAMBER]} Liters)")
-                    self.chamber_size.set(CHAMBER_SIZES[DEFAULT_CHAMBER])
+                    default_key = DEFAULT_CHAMBER
+                    self.chamber_type.set(
+                        f"{default_key} ({CHAMBER_SIZES[default_key]} Liters)"
+                    )
+                    self.chamber_size.set(CHAMBER_SIZES[default_key])
+
         self.calc_ror()
 
     def checkbox_changed(self):
-        """Toggle between the dropdown combobox and the manual text entry."""
         if self.checkbox_value.get():
             self.chamber_entry1.grid_remove()
-            self.chamber_entry2.grid(row=0, column=2, padx=10, pady=(10, 0), sticky="nsew")
+            self.chamber_entry2.grid(row=0, column=2, padx=10, pady=(10, 0), sticky='nsew')
+            # Clear the field so the user starts fresh with a plain number
+            self.chamber_type.set("")
             self.chamber_entry2.focus_set()
         else:
             self.chamber_entry2.grid_remove()
-            self.chamber_entry1.grid(row=0, column=2, padx=10, pady=(20, 0), sticky="nsew")
+            self.chamber_entry1.grid(row=0, column=2, padx=10, pady=(20, 0), sticky='nsew')
             self.chamber_entry1.focus_set()
-        self.update_size()
+            # Restore a valid display string when returning to combobox mode
+            self.update_size()
 
     def on_slider_change(self, val):
         """Handle time slider movement and trigger recalculation."""

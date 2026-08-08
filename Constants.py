@@ -18,3 +18,17 @@ COLORS = {
 
 STYLE_PRIMARY = "primary.TEntry"
 STYLE_DANGER = "danger.TEntry"
+
+def nan_check(defaults):
+        for var, default in defaults:
+            try:
+                var.get()
+            except:
+                var.set(default)
+
+def str_nan_check(defaults):
+        for var, default in defaults:
+            try:
+                float(var.get())
+            except:
+                var.set(default)

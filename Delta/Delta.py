@@ -1,3 +1,5 @@
+from tkinter import TclError
+
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
@@ -6,6 +8,7 @@ import Delta.Wafer
 import Delta.History
 import Delta.Settings
 import Delta.DeltaConstants as dc
+import Constants as c
 
 
 # --- Constants ---
@@ -171,7 +174,7 @@ class Delta_Panel:
         widgets["stn_t"].bind("<Return>",          self.calculate_enter)
         self.pp_entry.bind("<<ComboboxSelected>>", self.update_settings)
         widgets["ws"].bind("<<ComboboxSelected>>", self.update_settings)
-        widgets["ds"].bind("<Return>",             self.update_settings)
+        widgets["ds"].bind("<FocusOut>",             self.update_settings)
         widgets["ds_slider"].bind("<ButtonRelease-1>",   self.update_settings)
         widgets["zoom_slider"].bind("<ButtonRelease-1>", self.update_settings)
 
@@ -181,24 +184,29 @@ class Delta_Panel:
 
     def calculate(self):
         """Run the delta calculation and update the result and wafer display."""
-        try:
-            ecc_r = int(self.ecc_r.get())
-            ecc_t = int(self.ecc_t.get())
-            stn_r = int(self.stn_r.get())
-            stn_t = int(self.stn_t.get())
-            self.ecc_r.set(ecc_r)
-            self.ecc_t.set(ecc_t)
-            self.stn_r.set(stn_r)
-            self.stn_t.set(stn_t)
-            self.delta.calculate_delta(ecc_r, ecc_t, stn_r, stn_t, self.ia.get(), self.ds.get())
-            self.result_r.set(self.delta.r)
-            self.result_t.set(self.delta.t)
-            self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get())
-        except (ValueError, TypeError):
-            return
+        ecc_r = int(self.ecc_r.get())
+        ecc_t = int(self.ecc_t.get())
+        stn_r = int(self.stn_r.get())
+        stn_t = int(self.stn_t.get())
+        self.ecc_r.set(ecc_r)
+        self.ecc_t.set(ecc_t)
+        self.stn_r.set(stn_r)
+        self.stn_t.set(stn_t)
+        self.delta.calculate_delta(ecc_r, ecc_t, stn_r, stn_t, self.ia.get(), self.ds.get())
+        self.result_r.set(self.delta.r)
+        self.result_t.set(self.delta.t)
+        self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get())
+
 
     def calculate_enter(self, event):
         """Calculate and record the result to history."""
+        c.nan_check([
+            (self.stn_r, 0),
+            (self.stn_t, 0),
+            (self.ecc_r, 0),
+            (self.ecc_t, 0),
+            (self.ds, 1.0)
+        ])
         self.calculate()
         self.history.add(
             self.tool.get(), self.ecc_r.get(), self.ecc_t.get(),
@@ -279,6 +287,13 @@ class Delta_Panel:
         self.calculate()
 
     def update_settings(self, event=None):
+        c.nan_check([
+            (self.stn_r, 0),
+            (self.stn_t, 0),
+            (self.ecc_r, 0),
+            (self.ecc_t, 0),
+            (self.ds, 1.0)
+        ])
         """Persist current settings and refresh the wafer position display."""
         self.settings.change(self.pp.get(), self.ws.get(), self.ds.get(), self.ia.get())
         position = self.pp_entry.get() if self._zoom_is_default() else None
