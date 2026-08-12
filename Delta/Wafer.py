@@ -10,7 +10,10 @@ MARKER_RADIUS     = 3
 TRIANGLE_SIDE     = 5
 DELTA_SCALE       = 1000
 DEFAULT_ZOOM      = 0.25   # zoom/4 fraction used for the reference ring at zoom=1
-
+ARROW_START       = 5
+ARROW_END         = 20
+TEXT_Y_OFFSET     = 35
+TEXT_X_OFFSET     = 40
 
 class Wafer:
     """Tkinter canvas widget that displays a wafer, notch position, and delta marker."""
@@ -36,6 +39,10 @@ class Wafer:
             width=self.diameter  + OFFSET * 2,
             height=self.diameter + OFFSET * 2,
         )
+        self.x_arrow = None
+        self.y_arrow = None
+        self.x_label = None
+        self.y_label = None
 
     def _draw_base(self):
         """Draw the static base elements: robot arm, laser, wafer, center, zoom ring, and notch."""
@@ -136,7 +143,7 @@ class Wafer:
             *coords, fill=c.COLORS["primary"]
         )
 
-    def add_delta(self, x: float, y: float, size: float, zoom: float):
+    def add_delta(self, x: float, y: float, size: float, zoom: float, change_r: int, change_t: int):
         """Draw the delta position marker and update the zoom reference ring.
 
         Args:
@@ -163,6 +170,35 @@ class Wafer:
             cy + MARKER_RADIUS,
             outline=c.COLORS["primary"],
         )
+        self._add_directions(cx, cy, change_r, change_t)
+
+    def _add_directions(self, cx, cy, change_r, change_t):
+        if self.x_arrow:  self.waf_canvas.delete(self.x_arrow)
+        if self.y_arrow:  self.waf_canvas.delete(self.y_arrow)
+        if self.x_label:  self.waf_canvas.delete(self.x_label)
+        if self.y_label:  self.waf_canvas.delete(self.y_label)
+        direction_x = 1 if change_t > 0 else -1
+        direction_y = -1 if change_r > 0 else 1
+        if change_r != 0:
+            self.x_arrow = self.waf_canvas.create_line(
+                cx,
+                cy + ARROW_START * direction_y,
+                cx,
+                cy + ARROW_END * direction_y, 
+                arrow=tk.LAST,
+                fill=c.COLORS["primary"]
+            )
+            self.x_label = self.waf_canvas.create_text(cx, cy + TEXT_Y_OFFSET * direction_y, text=change_r, fill="white", font=("Arial", 10)) 
+        if change_t != 0:
+            self.y_arrow = self.waf_canvas.create_line(
+                cx + ARROW_START * direction_x,
+                cy,
+                cx + ARROW_END * direction_x,
+                cy, 
+                arrow=tk.LAST,
+                fill=c.COLORS["primary"]
+            )
+            self.y_label = self.waf_canvas.create_text(cx + TEXT_X_OFFSET * direction_x, cy, text=change_t, fill="white", font=("Arial", 10))
 
     def remove_delta(self):
         """Remove the delta position marker from the canvas."""

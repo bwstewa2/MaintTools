@@ -195,7 +195,9 @@ class Delta_Panel:
         self.delta.calculate_delta(ecc_r, ecc_t, stn_r, stn_t, self.ia.get(), self.ds.get())
         self.result_r.set(self.delta.r)
         self.result_t.set(self.delta.t)
-        self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get())
+        change_r = self.result_r.get() - stn_r
+        change_t = self.result_t.get() - stn_t
+        self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get(), change_r, change_t)
 
 
     def calculate_enter(self, event):
