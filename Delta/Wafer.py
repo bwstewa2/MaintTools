@@ -148,8 +148,8 @@ class Wafer:
         self.waf_canvas.delete(self._delta_item)
         self.waf_canvas.delete(self._zoom_ring)
 
-        x_mil = x / DELTA_SCALE
-        y_mil = y / DELTA_SCALE
+        x_mil = -x / DELTA_SCALE
+        y_mil = -y / DELTA_SCALE
         scale = self.radius / (size / 2) * zoom
 
         cx = round(self.radius - scale * x_mil + OFFSET, 1)
