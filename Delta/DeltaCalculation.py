@@ -102,6 +102,8 @@ class Delta:
             waf_t_final = waf_t_stn
         elif in_q1_or_q4 and waf_t_stn < 0:
             waf_t_final = RAW_ANGLE_MAX + waf_t_stn
+        elif in_q1_or_q4 and waf_t_stn == 0:
+            waf_t_final = waf_t_stn
         else:
             waf_t_final = 180_000 + waf_t_stn
 

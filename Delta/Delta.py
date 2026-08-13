@@ -1,5 +1,3 @@
-from tkinter import TclError
-
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
@@ -69,11 +67,15 @@ class Delta_Panel:
 
         self._build_labels(frame1)
         widgets = self._build_inputs(frame1)
-        self._build_controls(frame1, frame3, widgets)
+        self._build_controls(frame1, frame3)
         self._bind_events(widgets)
 
         self.waf = Delta.Wafer.Wafer(frame4, dc.WAFER_IMAGE_SIZE)
         self.waf.change_position(self.settings.get()["pp"])
+
+        self.waf.waf_canvas.bind("<MouseWheel>", self._on_scroll)        # Windows
+        self.waf.waf_canvas.bind("<Button-4>",   self._on_scroll)        # Linux scroll up
+        self.waf.waf_canvas.bind("<Button-5>",   self._on_scroll)        # Linux scroll down
 
         frame.pack(fill="both", expand=True)
 
@@ -154,7 +156,7 @@ class Delta_Panel:
             "ds_slider": ds_slider, "zoom_slider": zoom_slider,
         }
 
-    def _build_controls(self, frame1, frame3, widgets):
+    def _build_controls(self, frame1, frame3):
         """Grid checkbuttons, action buttons, and navigation buttons."""
         ttk.Checkbutton(
             frame3, text="Aligner Position", variable=self.ia,
@@ -177,6 +179,7 @@ class Delta_Panel:
         widgets["ds"].bind("<FocusOut>",             self.update_settings)
         widgets["ds_slider"].bind("<ButtonRelease-1>",   self.update_settings)
         widgets["zoom_slider"].bind("<ButtonRelease-1>", self.update_settings)
+
 
     # ------------------------------------------------------------------ #
     #  Calculation                                                         #
@@ -306,6 +309,25 @@ class Delta_Panel:
         """Persist history and settings when the application closes."""
         self.history.write()
         self.settings.write()
+
+    def _on_scroll(self, event):
+        """Zoom in/out on the wafer canvas using the mouse scroll wheel."""
+        # Normalize scroll direction across Windows and Linux
+        if event.num == 4:
+            delta = 1
+        elif event.num == 5:
+            delta = -1
+        else:
+            delta = 1 if event.delta > 0 else -1
+
+        scale      = 0.9 if delta < 0 else 1.1
+        new_zoom   = round(max(dc.ZOOM_MIN, min(dc.ZOOM_MAX, self.zoom.get() * scale)), 3)
+
+        if new_zoom == self.zoom.get():
+            return
+
+        self.zoom.set(new_zoom)
+        self.calculate()
 
     # ------------------------------------------------------------------ #
     #  Private Utilities                                                   #

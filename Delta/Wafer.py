@@ -173,10 +173,10 @@ class Wafer:
         self._add_directions(cx, cy, change_r, change_t)
 
     def _add_directions(self, cx, cy, change_r, change_t):
-        if self.x_arrow:  self.waf_canvas.delete(self.x_arrow)
-        if self.y_arrow:  self.waf_canvas.delete(self.y_arrow)
-        if self.x_label:  self.waf_canvas.delete(self.x_label)
-        if self.y_label:  self.waf_canvas.delete(self.y_label)
+        components = [self.x_arrow, self.y_arrow, self.x_label, self.y_label]
+        for component in components:
+            if component:  self.waf_canvas.delete(component)
+        
         direction_x = 1 if change_t > 0 else -1
         direction_y = -1 if change_r > 0 else 1
         if change_r != 0:
@@ -189,6 +189,7 @@ class Wafer:
                 fill=c.COLORS["primary"]
             )
             self.x_label = self.waf_canvas.create_text(cx, cy + TEXT_Y_OFFSET * direction_y, text=change_r, fill="white", font=("Arial", 10)) 
+            
         if change_t != 0:
             self.y_arrow = self.waf_canvas.create_line(
                 cx + ARROW_START * direction_x,
