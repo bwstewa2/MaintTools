@@ -1,5 +1,4 @@
 import tkinter as tk
-
 import Constants as c
 import Delta.DeltaConstants as dc
 
@@ -152,8 +151,7 @@ class Wafer:
             size: Wafer diameter in mils used to calculate the display scale.
             zoom: Current zoom level — scales both the marker and ring.
         """
-        self.waf_canvas.delete(self._delta_item)
-        self.waf_canvas.delete(self._zoom_ring)
+        self.remove_delta()
 
         x_mil = -x / DELTA_SCALE
         y_mil = -y / DELTA_SCALE
@@ -172,11 +170,7 @@ class Wafer:
         )
         self._add_directions(cx, cy, change_r, change_t)
 
-    def _add_directions(self, cx, cy, change_r, change_t):
-        components = [self.x_arrow, self.y_arrow, self.x_label, self.y_label]
-        for component in components:
-            if component:  self.waf_canvas.delete(component)
-        
+    def _add_directions(self, cx, cy, change_r, change_t):       
         direction_x = 1 if change_t > 0 else -1
         direction_y = -1 if change_r > 0 else 1
         if change_r != 0:
@@ -189,7 +183,7 @@ class Wafer:
                 fill=c.COLORS["primary"]
             )
             self.x_label = self.waf_canvas.create_text(cx, cy + TEXT_Y_OFFSET * direction_y, text=change_r, fill="white", font=("Arial", 10)) 
-            
+
         if change_t != 0:
             self.y_arrow = self.waf_canvas.create_line(
                 cx + ARROW_START * direction_x,
@@ -205,3 +199,6 @@ class Wafer:
         """Remove the delta position marker from the canvas."""
         self.waf_canvas.delete(self._delta_item)
         self._delta_item = None
+        components = [self.x_arrow, self.y_arrow, self.x_label, self.y_label]
+        for component in components:
+            if component:  self.waf_canvas.delete(component)

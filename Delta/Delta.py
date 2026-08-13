@@ -1,6 +1,5 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-
 import Delta.DeltaCalculation
 import Delta.Wafer
 import Delta.History
@@ -66,16 +65,16 @@ class Delta_Panel:
         frame5.grid(row=0, column=1,                                   sticky="nsew")
 
         self._build_labels(frame1)
-        widgets = self._build_inputs(frame1)
+        self.widgets = self._build_inputs(frame1)
         self._build_controls(frame1, frame3)
-        self._bind_events(widgets)
+        self._bind_events()
 
         self.waf = Delta.Wafer.Wafer(frame4, dc.WAFER_IMAGE_SIZE)
         self.waf.change_position(self.settings.get()["pp"])
 
-        self.waf.waf_canvas.bind("<MouseWheel>", self._on_scroll)        # Windows
-        self.waf.waf_canvas.bind("<Button-4>",   self._on_scroll)        # Linux scroll up
-        self.waf.waf_canvas.bind("<Button-5>",   self._on_scroll)        # Linux scroll down
+        self.waf.waf_canvas.bind("<MouseWheel>", self.on_scroll)        # Windows
+        self.waf.waf_canvas.bind("<Button-4>",   self.on_scroll)        # Linux scroll up
+        self.waf.waf_canvas.bind("<Button-5>",   self.on_scroll)        # Linux scroll down
 
         frame.pack(fill="both", expand=True)
 
@@ -112,8 +111,8 @@ class Delta_Panel:
         ws_entry = ttk.Combobox(frame, textvariable=self.ws, values=WAFER_SIZE_OPTIONS, width=COMBO_SMALL_WIDTH)
         ws_entry.grid(row=0, column=2, padx=5, pady=(10, 0), sticky="nsew")
 
-        self.pp_entry = ttk.Combobox(frame, textvariable=self.pp, values=PP_OPTIONS, width=COMBO_SMALL_WIDTH)
-        self.pp_entry.grid(row=1, column=2, padx=5, pady=(10, 0), sticky="nsew")
+        pp_entry = ttk.Combobox(frame, textvariable=self.pp, values=PP_OPTIONS, width=COMBO_SMALL_WIDTH)
+        pp_entry.grid(row=1, column=2, padx=5, pady=(10, 0), sticky="nsew")
 
         ecc_r_entry = ttk.Entry(frame, textvariable=self.ecc_r, width=INPUT_ENTRY_WIDTH)
         ecc_r_entry.grid(row=1, column=1, padx=5, pady=(10, 0), sticky="nsew")
@@ -154,6 +153,7 @@ class Delta_Panel:
             "ecc_r": ecc_r_entry, "stn_t": stn_t_entry,
             "ws":    ws_entry,    "ds":    ds_entry,
             "ds_slider": ds_slider, "zoom_slider": zoom_slider,
+            "pp_entry": pp_entry,
         }
 
     def _build_controls(self, frame1, frame3):
@@ -170,15 +170,15 @@ class Delta_Panel:
         ttk.Button(frame1, text="\u2190",     command=self.history_back,            width=5,  style=INFO).grid(row=9, column=2, padx=5, pady=(10, 0))
         ttk.Button(frame1, text="\u2934",     command=self.set_results,             width=5,  style=INFO).grid(row=7, column=2, padx=5, pady=(10, 0))
 
-    def _bind_events(self, widgets: dict):
+    def _bind_events(self):
         """Bind all <Return> and selection events to their handlers."""
-        widgets["ecc_r"].bind("<Return>",          self.calculate_enter)
-        widgets["stn_t"].bind("<Return>",          self.calculate_enter)
-        self.pp_entry.bind("<<ComboboxSelected>>", self.update_settings)
-        widgets["ws"].bind("<<ComboboxSelected>>", self.update_settings)
-        widgets["ds"].bind("<FocusOut>",             self.update_settings)
-        widgets["ds_slider"].bind("<ButtonRelease-1>",   self.update_settings)
-        widgets["zoom_slider"].bind("<ButtonRelease-1>", self.update_settings)
+        self.widgets["ecc_r"].bind("<Return>",          self.calculate_enter)
+        self.widgets["stn_t"].bind("<Return>",          self.calculate_enter)
+        self.widgets["pp_entry"].bind("<<ComboboxSelected>>", self.update_settings)
+        self.widgets["ws"].bind("<<ComboboxSelected>>", self.update_settings)
+        self.widgets["ds"].bind("<FocusOut>",             self.update_settings)
+        self.widgets["ds_slider"].bind("<ButtonRelease-1>",   self.update_settings)
+        self.widgets["zoom_slider"].bind("<ButtonRelease-1>", self.update_settings)
 
 
     # ------------------------------------------------------------------ #
@@ -244,7 +244,7 @@ class Delta_Panel:
         if self.history_index.get() < max_index:
             self.history_index.set(self.history_index.get() + 1)
             self._load_history_entry(self.history_index.get())
-            self.waf.change_position(self.pp_entry.get())
+            self.waf.change_position(self.widgets["pp_entry"].get())
             self.calculate()
         else:
             self.clear()
@@ -256,7 +256,7 @@ class Delta_Panel:
             self.history_index.set(self.history_index.get() - 1)
             try:
                 self._load_history_entry(self.history_index.get())
-                self.waf.change_position(self.pp_entry.get())
+                self.waf.change_position(self.widgets["pp_entry"].get())
                 self.calculate()
             except (IndexError, KeyError):
                 self.clear()
@@ -269,7 +269,7 @@ class Delta_Panel:
         """Reset the delta adjustment to default and recalculate."""
         self.ds.set(DS_DEFAULT)
         self.settings.change(self.pp.get(), self.ws.get(), self.ds.get(), self.ia.get())
-        position = self.pp_entry.get() if self._zoom_is_default() else None
+        position = self.widgets["pp_entry"].get() if self._zoom_is_default() else None
         self.waf.change_position(position)
         self.calculate()
 
@@ -301,7 +301,7 @@ class Delta_Panel:
         ])
         """Persist current settings and refresh the wafer position display."""
         self.settings.change(self.pp.get(), self.ws.get(), self.ds.get(), self.ia.get())
-        position = self.pp_entry.get() if self._zoom_is_default() else None
+        position = self.widgets["pp_entry"].get() if self._zoom_is_default() else None
         self.waf.change_position(position)
         self.calculate()
 
@@ -310,7 +310,7 @@ class Delta_Panel:
         self.history.write()
         self.settings.write()
 
-    def _on_scroll(self, event):
+    def on_scroll(self, event):
         """Zoom in/out on the wafer canvas using the mouse scroll wheel."""
         # Normalize scroll direction across Windows and Linux
         if event.num == 4:
