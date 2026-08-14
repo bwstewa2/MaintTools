@@ -195,12 +195,13 @@ class Delta_Panel:
         self.ecc_t.set(ecc_t)
         self.stn_r.set(stn_r)
         self.stn_t.set(stn_t)
-        self.delta.calculate_delta(ecc_r, ecc_t, stn_r, stn_t, self.ia.get(), self.ds.get())
-        self.result_r.set(self.delta.r)
-        self.result_t.set(self.delta.t)
-        change_r = self.result_r.get() - stn_r
-        change_t = self.result_t.get() - stn_t
-        self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get(), change_r, change_t)
+        if ecc_r or ecc_t or stn_r or stn_t:
+            self.delta.calculate_delta(ecc_r, ecc_t, stn_r, stn_t, self.ia.get(), self.ds.get())
+            self.result_r.set(self.delta.r)
+            self.result_t.set(self.delta.t)
+            change_r = self.result_r.get() - stn_r
+            change_t = self.result_t.get() - stn_t
+            self.waf.add_delta(self.delta.x, self.delta.y, dc.WAFER_SIZE[self.ws.get()], self.zoom.get(), change_r, change_t)
 
 
     def calculate_enter(self, event):
@@ -325,7 +326,7 @@ class Delta_Panel:
 
         if new_zoom == self.zoom.get():
             return
-
+        
         self.zoom.set(new_zoom)
         self.calculate()
 

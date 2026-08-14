@@ -1,4 +1,5 @@
 import tkinter as tk
+
 import Constants as c
 import Delta.DeltaConstants as dc
 
@@ -152,7 +153,8 @@ class Wafer:
             zoom: Current zoom level — scales both the marker and ring.
         """
         self.remove_delta()
-
+        self.waf_canvas.delete(self._zoom_ring)
+        
         x_mil = -x / DELTA_SCALE
         y_mil = -y / DELTA_SCALE
         scale = self.radius / (size / 2) * zoom
@@ -170,7 +172,11 @@ class Wafer:
         )
         self._add_directions(cx, cy, change_r, change_t)
 
-    def _add_directions(self, cx, cy, change_r, change_t):       
+    def _add_directions(self, cx, cy, change_r, change_t):
+        components = [self.x_arrow, self.y_arrow, self.x_label, self.y_label]
+        for component in components:
+            if component:  self.waf_canvas.delete(component)
+        
         direction_x = 1 if change_t > 0 else -1
         direction_y = -1 if change_r > 0 else 1
         if change_r != 0:

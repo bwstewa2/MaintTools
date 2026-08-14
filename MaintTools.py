@@ -6,11 +6,11 @@ from tkinter.font import nametofont
 
 import Delta.DeltaConstants as dc
 from Delta.Delta import Delta_Panel
-from Leakback import Leakback_Panel
-from ParameterCheck import Parameter_Panel
-from AnalogCalibration import AnalogCalibration_Panel
-from TargetWear import TargetWear_Panel
-from UnitConversion import UnitConversion_Panel
+from Leakback.Leakback import Leakback_Panel
+from ParameterCheck.ParameterCheck import Parameter_Panel
+from AnalogCalibration.AnalogCalibration import AnalogCalibration_Panel
+from Targets.TargetWear import TargetWear_Panel
+from Conversions.UnitConversion import UnitConversion_Panel
 
 def configure_dpi():
     """Configure DPI awareness based on the current operating system."""
