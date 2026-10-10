@@ -82,8 +82,8 @@ class Delta_Panel:
         """Grid all row labels in the input frame."""
         labels = [
             (0, "Tool:"),
-            (1, "Aligner R (10th mil):"),
-            (2, "Aligner T (10th deg):"),
+            (1, "Aligner R (Max 0.0001 in):"),
+            (2, "Aligner T (Angle 0.1 deg):"),
             (3, "Station R (micron):"),
             (4, "Station T (1000th deg):"),
             (7, "New Station R Value:"),
