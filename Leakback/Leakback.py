@@ -242,7 +242,7 @@ class Leakback_Panel:
                     (self.pressure_start,  DEFAULT_DOUBLE),
                     (self.pressure_end,    DEFAULT_DOUBLE),
                     (self.time,            DEFAULT_TIME),
-                ])
+                ], False)
         delta_calc = float(self.pressure_end.get()) - float(self.pressure_start.get())
         ror_calc   = delta_calc / (self.time.get() * 60) * self.chamber_size.get()
         self.delta.set("{:.2e}".format(delta_calc))

@@ -39,7 +39,7 @@ class Delta:
         stn_t_raw      = stn_t_raw % RAW_ANGLE_MAX
 
         # --- Convert raw units to radians / mils ---
-        flange_adjust = 0.0 if is_aligner else math.pi
+        flange_adjust = math.pi if is_aligner else 0.0
         ecc_r         = (ecc_r_raw / RAW_RADIUS_SCALE) * MILS_PER_INCH
         ecc_t_flange  = math.pi - (ecc_t_raw / RAW_ANGLE_SCALE) * math.pi / 180 - flange_adjust
         stn_t_abs     = 2 * math.pi - (stn_t_raw / 1000) * math.pi / 180

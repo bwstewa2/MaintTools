@@ -212,7 +212,7 @@ class Delta_Panel:
             (self.ecc_r, 0),
             (self.ecc_t, 0),
             (self.ds, 1.0)
-        ])
+        ], False)
         self.calculate()
         self.history.add(
             self.tool.get(), self.ecc_r.get(), self.ecc_t.get(),
@@ -299,7 +299,7 @@ class Delta_Panel:
             (self.ecc_r, 0),
             (self.ecc_t, 0),
             (self.ds, 1.0)
-        ])
+        ], False)
         """Persist current settings and refresh the wafer position display."""
         self.settings.change(self.pp.get(), self.ws.get(), self.ds.get(), self.ia.get())
         position = self.widgets["pp_entry"].get() if self._zoom_is_default() else None

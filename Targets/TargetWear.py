@@ -132,7 +132,7 @@ class TargetWear_Panel:
         c.nan_check([
                             (self.eotl, DEFAULT_EOTL),
                             (self.num_targets,  DEFAULT_TARGETS),
-                        ])
+                        ], False)
         """Calculate wear percent (wear depth / TRS thickness) for each target."""
         values = self._parse_cells()
         wear = self._compute_wear(values)
